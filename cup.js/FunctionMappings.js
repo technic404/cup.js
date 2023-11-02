@@ -1,6 +1,7 @@
 class FunctionMappings {
     constructor() {
         this.mappings = new Map(); // attribute, { type: "click", action: function }
+        this.appliedFunctions = new Map(); // attribute, [ { element: HTMLElement type: "click", appliedFunction: function } ]
     }
 
     /**
@@ -23,7 +24,7 @@ class FunctionMappings {
 
         //console.log(`Created mapping for ${mappingFunction} with attribute ${attribute}`)
 
-        this.applyBodyMappings();
+        //this.applyBodyMappings();
 
         return ` ${attribute} `; // space between
     }
@@ -102,12 +103,56 @@ class FunctionMappings {
     /**
      *
      * @param {HTMLElement} element
+     * @param {String} attribute
      * @param {Boolean} allowDuplicates
      */
-    applyElementMappingFunction(element, allowDuplicates = false) {
+    applyElementAttributeMappingFunction(element, attribute, allowDuplicates = false) {
+        if(!this.mappings.has(attribute)) return;
+
+        const mapping = this.mappings.get(attribute);
+
+        if(mapping.isApplied && !allowDuplicates) return;
+
+        mapping.isApplied = true;
+
+        if(!element) {
+            return console.log(`${CJS_PRETTY_PREFIX_X}Fatal error mapping for ${Colors.Yellow}"${attribute}"${Colors.None} failed, cannot find element matching that attribute`);
+        }
+
+        const targetElementEvent = (mapping.options.windowApplied ? window : element);
+
+        const eventFunction = (event) => {
+            if(this.isEventAttributeLocked(attribute)) return;
+
+            mapping.action(event, element, mapping.data);
+        }
+
+        /*
+        if(!this.appliedFunctions.has(attribute)) {
+            this.appliedFunctions.set(attribute, []);
+        }
+        */
+
+        //const appliedFunctionsArray = this.appliedFunctions.get(attribute);
+
+        targetElementEvent.addEventListener(mapping.type, eventFunction);
+
+        //appliedFunctionsArray.push({ element: targetElementEvent, type: mapping.type, appliedFunction: eventFunction })
+
+    }
+
+    /**
+     *
+     * @param {HTMLElement} element
+     * @param {Boolean} allowDuplicates
+     * @param {String} x
+     */
+    applyElementMappingFunction(element, allowDuplicates = false, x = 'ovser') {
         const attributes = getAttributeStartingWith(element, CJS_ELEMENT_PREFIX);
 
         for(const attribute of attributes) {
+            this.applyElementAttributeMappingFunction(element, attribute, allowDuplicates);
+            /*
             if(!this.mappings.has(attribute)) return;
 
             const mapping = this.mappings.get(attribute);
@@ -127,12 +172,16 @@ class FunctionMappings {
 
                 mapping.action(event, element, mapping.data);
             });
+            */
         }
     }
 
+    /**
+     * Applies mappings to all elements in body without duplicates (theoretically)
+     */
     applyBodyMappings() {
         for (const element of document.body.querySelectorAll("*")) {
-            functionMappings.applyElementMappingFunction(element, false)
+            this.applyElementMappingFunction(element, false, 'body')
         }
     }
 }
