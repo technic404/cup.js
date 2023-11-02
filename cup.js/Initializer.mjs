@@ -14,12 +14,13 @@ function init() {
     /* KeyFrames style */
     createStyle(CJS_STYLE_KEYFRAMES_PREFIX);
 
-    document.addEventListener('DOMContentLoaded', (e) => {
+    document.addEventListener('DOMContentLoaded', async (e) => {
         /* Cjs body root */
         const container = createContainer(CJS_ROOT_CONTAINER_PREFIX);
+        const mainLayoutElement = MainLayout.getLayout().getLayoutElement();
 
         container.innerHTML = ``;
-        container.insertAdjacentElement(`beforeend`, MainLayout.getLayout().getLayoutElement());
+        container.insertAdjacentElement(`beforeend`, mainLayoutElement);
 
         MainLayout.loadLayoutMappings();
 
