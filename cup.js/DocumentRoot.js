@@ -2,7 +2,6 @@
  * Definition of base action modules
  */
 const functionMappings = new FunctionMappings();
-const changesObserver = new ChangesObserverListener();
 
 /**
  * Definition of Root website class
