@@ -42,7 +42,7 @@ class Component {
 
         element.innerHTML = html;
 
-        functionMappings.applyBodyMappings();
+        //functionMappings.applyBodyMappings();
     }
 
     /**
@@ -54,7 +54,6 @@ class Component {
 
         element.innerHTML = ``;
         element.insertAdjacentElement(`beforeend`, layoutLoader.getLayout().getLayoutElement());
-
 
         layoutLoader.loadLayoutMappings();
     }
