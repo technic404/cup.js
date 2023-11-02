@@ -12,7 +12,8 @@ class ChangesObserverEvent {
 
 class ChangesObserverListener {
     constructor() {
-        this.map = new Map();
+        this.map = new Map(); // attribute, { type: string, action: function, data: object }
+        this.executedFunctions = new Map(); // attribute, { element: HTMLElement }
     }
 
     /**
@@ -115,6 +116,17 @@ class ChangesObserverListener {
     execute(type, attribute, element) {
         if(!this.map.has(attribute)) return;
 
+        //const isPart = getAttributeStartingWith(element, CJS_PART_PREFIX).length > 0;
+        //const isComponent = getAttributeStartingWith(element, CJS_COMPONENT_PREFIX).length > 0;
+        const isRegistered = this.executedFunctions.has(attribute);
+
+        if(isRegistered) {
+            const registeredElementMatches = this.executedFunctions.get(attribute).element === element
+
+            if(registeredElementMatches) return;
+
+        }
+
         const obj = this.map.get(attribute);
 
         if(obj.type !== type) return;
@@ -124,74 +136,79 @@ class ChangesObserverListener {
             findParentThatHasAttribute(element, CJS_COMPONENT_PREFIX),
             findParentThatHasAttribute(element, CJS_PART_PREFIX),
             element,
-            obj.data
+            Object.assign({}, obj.data)
         );
 
         obj.action(cjsEvent);
 
-        functionMappings.applyBodyMappings(); // important!
+        if(!this.executedFunctions.has(attribute)) {
+            this.executedFunctions.set(attribute, { element: element })
+        }
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    changesObserver.executeAll("add");
+const changesObserver = new ChangesObserverListener();
 
-    const targetNode = document;
+const targetNode = document;
 
-    const mutationCallback = function(mutationsList, observer) {
-        for (let mutation of mutationsList) {
-            if(mutation.type !== 'childList') continue;
+const mutationCallback = function(mutationsList, observer) {
+    for (let mutation of mutationsList) {
+        if(mutation.type !== 'childList') continue;
 
-            mutation.addedNodes.forEach(addedNode => {
-                // Convert Node to HTMLElement
-                const element = document.createElement("div");
-                element.appendChild(addedNode.cloneNode(true));
+        mutation.addedNodes.forEach(addedNode => {
+            // Convert Node to HTMLElement
+            const element = document.createElement("div");
+            element.appendChild(addedNode.cloneNode(true));
 
-                for(const fictionChild of [element, ...element.querySelectorAll("*")]) {
-                    // Find all attributes in fiction HTMLElement
-                    const fictionChildAttributes = {
-                        element: getAttributeStartingWith(fictionChild, CJS_ELEMENT_PREFIX),
-                        observer: getAttributeStartingWith(fictionChild, CJS_OBSERVER_PREFIX)
-                    }
-
-                    // If there are no attributes just skip
-                    if (fictionChildAttributes.element.length === 0 && fictionChildAttributes.observer.length === 0) continue;
-
-                    // Loop through found attributes
-                    fictionChildAttributes.element.forEach(attribute => {
-                        // Find real elements with that attribute
-                        const documentChild = document.querySelectorAll(`[${attribute}='']`);
-
-                        documentChild.forEach(child => {
-                            // Allowing duplicates because of the child was added right now so it does not have any event yet
-                            functionMappings.applyElementMappingFunction(child, true);
-                        })
-                    })
-
-                    // Loop through found attributes
-                    fictionChildAttributes.observer.forEach(attribute => {
-                        // Find real elements with that attribute
-                        const documentChild = document.querySelectorAll(`[${attribute}='']`);
-
-                        documentChild.forEach(child => {
-                            changesObserver.execute("add", attribute, child);
-                        })
-                    });
+            for(const fictionChild of [element, ...element.querySelectorAll("*")]) {
+                // Find all attributes in fiction HTMLElement
+                const fictionChildAttributes = {
+                    element: getAttributeStartingWith(fictionChild, CJS_ELEMENT_PREFIX),
+                    observer: getAttributeStartingWith(fictionChild, CJS_OBSERVER_PREFIX)
                 }
-            });
 
-            mutation.removedNodes.forEach(removedNode => {
-                const attributes = getAttributeStartingWith(removedNode, CJS_OBSERVER_PREFIX);
+                // If there are no attributes just skip
+                if (fictionChildAttributes.element.length === 0 && fictionChildAttributes.observer.length === 0) continue;
 
-                attributes.forEach(attribute => {
-                    changesObserver.execute("remove", attribute, removedNode);
-                })
-            });
-        }
-    };
+                // Loop through found attributes
+                fictionChildAttributes.element.forEach(attribute => {
+                    // Find real elements with that attribute
+                    const documentChild = document.querySelectorAll(`[${attribute}='']`);
 
+                    documentChild.forEach(child => {
+                        // Allowing duplicates because of the child was added right now so it does not have any event yet
+                        functionMappings.applyElementAttributeMappingFunction(child, attribute, true);
+                    })
+                });
+
+                // Loop through found attributes
+                fictionChildAttributes.observer.forEach(attribute => {
+                    // Find real elements with that attribute
+                    const documentChild = document.querySelectorAll(`[${attribute}='']`);
+
+                    documentChild.forEach(child => {
+                        changesObserver.execute("add", attribute, child);
+                    })
+                });
+            }
+        });
+
+        mutation.removedNodes.forEach(removedNode => {
+            const attributes = getAttributeStartingWith(removedNode, CJS_OBSERVER_PREFIX);
+
+            attributes.forEach(attribute => {
+                changesObserver.execute("remove", attribute, removedNode);
+            })
+        });
+    }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
     const observer = new MutationObserver(mutationCallback);
     const config = { childList: true, subtree: true };
 
     observer.observe(targetNode, config);
+
+    changesObserver.executeAll("add"); // executes missing onLoad functions inside elements, because some elements might have been loaded before DOMContentLoaded
+
 })
