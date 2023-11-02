@@ -95,9 +95,10 @@ class CjsKeyFrame {
 
         const directionDefinedEntries = ( options.reversed === true ? this.entries.slice().reverse() : this.entries );
 
-        const entriesEachPercent = 100 / (directionDefinedEntries.length - 1)
+        const entriesEachPercent = 100 / (directionDefinedEntries.length - 1);
         let parsedEntries = directionDefinedEntries.map((entry, i) => {
-            const percent = i * entriesEachPercent;
+            const hasOneEntry = directionDefinedEntries.length === 1;
+            const percent = hasOneEntry ? 100 : i * entriesEachPercent;
 
             return `    ${percent}% { ${Object.keys(entry).map(e => `${e}: ${entry[e]};`).join(" ")} }`
         });
