@@ -91,6 +91,14 @@ async function addPrefixToSelectors(cssText, prefix, options = { prefixStyleRule
                     if(!isSelectorNotClassOrId) {
                         selectors.push(`${prefix} > * ${sel.trim()}`)
                         selectors.push(`${prefix} > ${sel.trim()}`)
+                    } else {
+                        // Selector like button[cjsAttribute] { ... }
+                        const selectorTextSplit = selectorText.split(" ");
+                        const firstTag = selectorTextSplit[0];
+                        const restSelector = selectorTextSplit.slice(1).join(" ");
+
+                        selectors.push(`${firstTag}${prefix} ${restSelector}`)
+
                     }
                 }
 
