@@ -114,26 +114,31 @@ class LayoutLoader {
         this.function = function() {};
     }
 
-    get data() {
-        return this._data;
-    }
+    get data() { return this._data }
 
     /**
      *
-     * @param {Object} value
+     * @param {Object} data
      */
-    set data(value) {
-        if(!(value instanceof Object)) return console.log(`${CJS_PRETTY_PREFIX_X}Cannot pass non-object param type to data setter`);
+    set data(data) {
+        if(!(data instanceof Object)) return console.log(`${CJS_PRETTY_PREFIX_X}Cannot pass non-object param type to data setter`);
 
-        this._data = value;
+        this._data = data;
+    }
 
-        if(Object.keys(this.firstData).length === 0) {
-            this.firstData = Object.assign({}, value);
-        }
+    /**
+     * Should be executed once only in Layout instance file, do not store here big values
+     * @param {Object} data
+     */
+    setDefaultData(data) {
+        if(!(data instanceof Object)) return console.log(`${CJS_PRETTY_PREFIX_X}Cannot pass non-object param type to data setter`);
+
+        this._data = Object.assign({}, data);
+        this.firstData = (JSON.stringify(data));
     }
 
     resetToDefaultData() {
-        this._data = Object.assign({}, this.firstData);
+        this._data = Object.assign({}, JSON.parse(this.firstData));
     }
 
     clone() {
